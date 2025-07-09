@@ -1,0 +1,373 @@
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
+import Layout from '@/components/Layout'
+import { apiClient } from '@/utils/api'
+
+export default function TaskDetail() {
+  const router = useRouter()
+  const { id } = router.query
+  const [task, setTask] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState(false)
+  const [projects, setProjects] = useState([])
+  const [workspaceMembers, setWorkspaceMembers] = useState([])
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    status: 'todo',
+    startDate: '',
+    dueDate: '',
+    assigneeId: ''
+  })
+
+  useEffect(() => {
+    if (id) {
+      fetchTaskDetail()
+      fetchProjects()
+      fetchWorkspaceMembers()
+    }
+  }, [id])
+
+  const fetchTaskDetail = async () => {
+    try {
+      const response = await apiClient.getTasks()
+      if (response.data) {
+        const foundTask = response.data.tasks.find((t: any) => t.id === id)
+        if (foundTask) {
+          setTask(foundTask)
+          setEditForm({
+            title: foundTask.title,
+            description: foundTask.description || '',
+            priority: foundTask.priority,
+            status: foundTask.status,
+            startDate: foundTask.startDate ? foundTask.startDate.split('T')[0] : '',
+            dueDate: foundTask.dueDate ? foundTask.dueDate.split('T')[0] : '',
+            assigneeId: foundTask.assigneeId || ''
+          })
+        } else {
+          router.push('/tasks')
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching task:', error)
+      router.push('/tasks')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchProjects = async () => {
+    try {
+      const response = await apiClient.getProjects()
+      if (response.data) {
+        setProjects(response.data.projects)
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+    }
+  }
+
+  const fetchWorkspaceMembers = async () => {
+    try {
+      const workspacesResponse = await apiClient.getWorkspaces()
+      if (workspacesResponse.data && workspacesResponse.data.workspaces.length > 0) {
+        const workspaceId = workspacesResponse.data.workspaces[0].id
+        const membersResponse = await apiClient.getWorkspaceMembers(workspaceId)
+        if (membersResponse.data) {
+          setWorkspaceMembers(membersResponse.data.members)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching workspace members:', error)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      const response = await apiClient.updateTask(task.id, editForm)
+      if (response.data) {
+        setTask(response.data.task)
+        setEditing(false)
+      }
+    } catch (error) {
+      console.error('Error updating task:', error)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (confirm('정말로 이 태스크를 삭제하시겠습니까?')) {
+      try {
+        await apiClient.deleteTask(task.id)
+        router.push('/tasks')
+      } catch (error) {
+        console.error('Error deleting task:', error)
+      }
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'todo': return 'bg-gray-100 text-gray-800'
+      case 'in_progress': return 'bg-blue-100 text-blue-800'
+      case 'review': return 'bg-yellow-100 text-yellow-800'
+      case 'done': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'low': return 'bg-green-100 text-green-800'
+      case 'medium': return 'bg-yellow-100 text-yellow-800'
+      case 'high': return 'bg-orange-100 text-orange-800'
+      case 'urgent': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
+
+  if (!task) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4">
+          <p className="text-center text-gray-500">Task not found</p>
+        </div>
+      </Layout>
+    )
+  }
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center text-gray-600 hover:text-gray-800"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+              <h1 className="text-2xl font-bold text-gray-900">Task Details</h1>
+            </div>
+            <div className="flex items-center space-x-3">
+              {editing ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Task Content */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            {editing ? (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                    rows={6}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="Enter task description..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                    <select
+                      value={editForm.priority}
+                      onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="review">Review</option>
+                      <option value="done">Done</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={editForm.startDate}
+                      onChange={(e) => setEditForm({...editForm, startDate: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                    <input
+                      type="date"
+                      value={editForm.dueDate}
+                      onChange={(e) => setEditForm({...editForm, dueDate: e.target.value})}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Assignee</label>
+                  <select
+                    value={editForm.assigneeId}
+                    onChange={(e) => setEditForm({...editForm, assigneeId: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">No Assignee</option>
+                    {workspaceMembers.map((member: any) => (
+                      <option key={member.user.id} value={member.user.id}>
+                        {member.user.username} ({member.user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-4">{task.title}</h2>
+                  <div className="flex items-center space-x-4 mb-6">
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                      {task.priority}
+                    </span>
+                    <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(task.status)}`}>
+                      {task.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 min-h-32">
+                    {task.description ? (
+                      <p className="text-gray-700 whitespace-pre-wrap">{task.description}</p>
+                    ) : (
+                      <p className="text-gray-500 italic">No description provided</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Task Details</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Project:</span>
+                        <span className="font-medium">{task.project?.name}</span>
+                      </div>
+                      {task.startDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Start Date:</span>
+                          <span className="font-medium">{new Date(task.startDate).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      )}
+                      {task.dueDate && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Due Date:</span>
+                          <span className="font-medium">{new Date(task.dueDate).toLocaleDateString('ko-KR')}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Created:</span>
+                        <span className="font-medium">{new Date(task.createdAt).toLocaleDateString('ko-KR')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Assignee</h3>
+                    {task.assignee ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
+                          {task.assignee.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium">{task.assignee.username}</div>
+                          <div className="text-sm text-gray-600">{task.assignee.email}</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic">No assignee</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Layout>
+  )
+}
