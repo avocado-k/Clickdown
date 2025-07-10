@@ -72,17 +72,22 @@ export default function Projects() {
     router.push(`/projects/${projectId}`)
   }
 
-  const handleDeleteProject = async (projectId: string, projectName: string) => {
-    if (confirm(`정말로 "${projectName}" 프로젝트를 삭제하시겠습니까?\n\n태스크가 있는 프로젝트는 삭제할 수 없습니다.`)) {
+  const handleDeleteProject = async (project: any) => {
+    if (project._count?.tasks > 0) {
+      alert(`프로젝트 "${project.name}"에는 ${project._count.tasks}개의 태스크가 있어 삭제할 수 없습니다.\n\n모든 태스크를 먼저 삭제해 주세요.`);
+      return;
+    }
+
+    if (confirm(`정말로 "${project.name}" 프로젝트를 삭제하시겠습니까?`)) {
       try {
-        console.log(`[handleDeleteProject] Attempting to delete project: ${projectId}`);
-        await apiClient.deleteProject(projectId);
-        console.log(`[handleDeleteProject] Project ${projectId} deleted successfully from API.`);
-        setProjects(projects.filter((p: any) => p.id !== projectId));
+        console.log(`[handleDeleteProject] Attempting to delete project: ${project.id}`);
+        await apiClient.deleteProject(project.id);
+        console.log(`[handleDeleteProject] Project ${project.id} deleted successfully from API.`);
+        setProjects(projects.filter((p: any) => p.id !== project.id));
         alert('프로젝트가 성공적으로 삭제되었습니다.');
       } catch (error) {
         console.error('[handleDeleteProject] Error deleting project:', error);
-        alert(`프로젝트 삭제에 실패했습니다: ${ (error as any).message || '알 수 없는 오류' }`);;
+        alert(`프로젝트 삭제에 실패했습니다: ${ (error as any).message || '알 수 없는 오류' }`);
       }
     }
   }
@@ -138,7 +143,7 @@ export default function Projects() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDeleteProject(project.id, project.name)
+                      handleDeleteProject(project)
                     }}
                     className="text-red-500 hover:text-red-700 p-1"
                     title="프로젝트 삭제"
