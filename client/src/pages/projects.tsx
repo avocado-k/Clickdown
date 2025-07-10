@@ -75,12 +75,14 @@ export default function Projects() {
   const handleDeleteProject = async (projectId: string, projectName: string) => {
     if (confirm(`정말로 "${projectName}" 프로젝트를 삭제하시겠습니까?\n\n태스크가 있는 프로젝트는 삭제할 수 없습니다.`)) {
       try {
-        await apiClient.deleteProject(projectId)
-        setProjects(projects.filter((p: any) => p.id !== projectId))
-        alert('프로젝트가 성공적으로 삭제되었습니다.')
+        console.log(`[handleDeleteProject] Attempting to delete project: ${projectId}`);
+        await apiClient.deleteProject(projectId);
+        console.log(`[handleDeleteProject] Project ${projectId} deleted successfully from API.`);
+        setProjects(projects.filter((p: any) => p.id !== projectId));
+        alert('프로젝트가 성공적으로 삭제되었습니다.');
       } catch (error) {
-        console.error('Error deleting project:', error)
-        alert('프로젝트 삭제에 실패했습니다: ' + ((error as any).message || '알 수 없는 오류'))
+        console.error('[handleDeleteProject] Error deleting project:', error);
+        alert(`프로젝트 삭제에 실패했습니다: ${ (error as any).message || '알 수 없는 오류' }`);;
       }
     }
   }

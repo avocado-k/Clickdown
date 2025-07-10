@@ -8,7 +8,9 @@ export default function TaskDetail() {
   const { id } = router.query
   const [task, setTask] = useState<any>(null)
   const [comments, setComments] = useState<any[]>([])
+  const [activities, setActivities] = useState<any[]>([])
   const [newComment, setNewComment] = useState('')
+  const [showActivityLog, setShowActivityLog] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [projects, setProjects] = useState([])
@@ -27,6 +29,7 @@ export default function TaskDetail() {
     if (id) {
       fetchTaskDetail()
       fetchComments()
+      fetchActivities()
       fetchProjects()
       fetchWorkspaceMembers()
     }
@@ -74,6 +77,18 @@ export default function TaskDetail() {
     }
   };
 
+  const fetchActivities = async () => {
+    if (typeof id !== 'string') return;
+    try {
+      const response = await apiClient.getTaskActivities(id);
+      if (response.data) {
+        setActivities(response.data.activities);
+      }
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+  };
+
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || typeof id !== 'string') return;
@@ -87,6 +102,20 @@ export default function TaskDetail() {
     } catch (error) {
       console.error('Error creating comment:', error);
       alert('Failed to add comment.');
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    if (confirm('Are you sure you want to delete this comment?') && typeof id === 'string') {
+      try {
+        const response = await apiClient.deleteComment(id, commentId);
+        if (response.data) {
+          setComments(comments.filter((c) => c.id !== commentId));
+        }
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Failed to delete comment.');
+      }
     }
   };
 
@@ -413,7 +442,18 @@ export default function TaskDetail() {
                   <div className="flex-1 bg-gray-50 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-sm text-gray-800">{comment.author.username}</span>
-                      <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
+                        <button
+                          onClick={() => handleCommentDelete(comment.id)}
+                          className="text-red-500 hover:text-red-700 text-xs"
+                          title="Delete Comment"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
                   </div>
@@ -442,6 +482,40 @@ export default function TaskDetail() {
                 </div>
               </div>
             </form>
+          </div>
+
+          {/* Activity Log Section */}
+          <div className="mt-8">
+            <button
+              onClick={() => setShowActivityLog(!showActivityLog)}
+              className="flex items-center text-xl font-semibold text-gray-900 mb-4 focus:outline-none"
+            >
+              Activity Log ({activities.length})
+              <svg
+                className={`w-5 h-5 ml-2 transform transition-transform ${showActivityLog ? 'rotate-90' : 'rotate-0'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            {showActivityLog && (
+              <div className="space-y-3">
+                {activities.map((activity) => (
+                  <div key={activity.id} className="flex items-start space-x-3 text-sm text-gray-700">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      {activity.user?.username.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-medium">{activity.user?.username || 'Unknown User'}</span>
+                      <span className="ml-1">{activity.content}</span>
+                      <span className="text-xs text-gray-500 ml-2">{new Date(activity.createdAt).toLocaleString('ko-KR')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

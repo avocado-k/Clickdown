@@ -155,6 +155,10 @@ class ApiClient {
     });
   }
 
+  async getTaskActivities(taskId: string) {
+    return this.request<{ activities: any[] }>(`/api/tasks/${taskId}/activities`);
+  }
+
   // Comment endpoints
   async getComments(taskId: string) {
     return this.request<{ comments: any[] }>(`/api/tasks/${taskId}/comments`);
@@ -164,6 +168,12 @@ class ApiClient {
     return this.request<{ comment: any }>(`/api/tasks/${taskId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
+    });
+  }
+
+  async deleteComment(taskId: string, commentId: string) {
+    return this.request<{ message: string }>(`/api/tasks/${taskId}/comments/${commentId}`, {
+      method: 'DELETE',
     });
   }
 

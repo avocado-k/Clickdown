@@ -377,3 +377,49 @@ router.delete('/projects/:id', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+
+// Get activities for a task
+router.get('/:id/activities', authMiddleware, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Verify user has access to the task
+    const task = await prisma.task.findFirst({
+      where: {
+        id,
+        project: {
+          workspace: {
+            members: {
+              some: { userId: req.user.id }
+            }
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found or access denied' });
+    }
+
+    const activities = await prisma.taskActivity.findMany({
+      where: { taskId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({ activities });
+  } catch (error) {
+    console.error('Get task activities error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});

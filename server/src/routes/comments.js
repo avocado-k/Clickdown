@@ -115,4 +115,57 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
+// Delete a comment
+router.delete('/:commentId', authMiddleware, async (req, res) => {
+  const { taskId, commentId } = req.params;
+
+  try {
+    // Verify user has access to the task
+    const task = await prisma.task.findFirst({
+      where: {
+        id: taskId,
+        project: {
+          workspace: {
+            members: {
+              some: { userId: req.user.id }
+            }
+          }
+        }
+      }
+    });
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found or access denied' });
+    }
+
+    const commentToDelete = await prisma.comment.findUnique({
+        where: { id: commentId },
+    });
+
+    if (!commentToDelete || commentToDelete.taskId !== taskId) {
+        return res.status(404).json({ message: 'Comment not found' });
+    }
+
+    await prisma.comment.delete({
+      where: { id: commentId },
+    });
+
+    // Create activity log for the deletion
+    await prisma.taskActivity.create({
+      data: {
+        type: 'comment_deleted',
+        content: `deleted a comment: "${commentToDelete.content.substring(0, 50)}${commentToDelete.content.length > 50 ? '...' : ''}"`,
+        taskId: taskId,
+        userId: req.user.id
+      }
+    });
+
+    logger.info('Comment deleted', { commentId, taskId, userId: req.user.id });
+    res.status(200).json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    logger.error('Delete comment error', { commentId, taskId, userId: req.user.id, error: error.message });
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;
