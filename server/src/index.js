@@ -22,16 +22,20 @@ log.info('Starting Clickdown server', {
   timestamp: new Date().toISOString()
 });
 
+// CORS middleware (must be first to handle preflight requests)
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
+}));
+
 // Security middleware
 app.use(securityHeaders);
 app.use(generalLimiter);
 app.use(detectSuspiciousActivity);
-
-// Middleware
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
-}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(requestLogger);

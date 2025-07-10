@@ -26,7 +26,7 @@ const createRateLimiter = (windowMs, max, message) => {
 // 일반 API 요청 제한
 const generalLimiter = createRateLimiter(
   15 * 60 * 1000, // 15분
-  100, // 100 요청
+  500, // 500 요청 (개발 환경에서 더 관대하게)
   'Too many requests from this IP, please try again later.'
 );
 

@@ -2,7 +2,7 @@
 import logger from './logger';
 
 // API 서버 기본 URL (환경변수에서 가져오거나 기본값 사용)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // API 응답 타입 정의 (제네릭 타입 T 사용)
 interface ApiResponse<T> {

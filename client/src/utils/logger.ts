@@ -1,4 +1,5 @@
 // 클라이언트 로깅 시스템
+import { API_BASE_URL } from './api';
 
 // 로그 항목의 타입 정의
 interface LogEntry {
@@ -194,7 +195,7 @@ class ClientLogger {
     if (typeof window === 'undefined') return;
 
     try {
-      const response = await fetch('/api/logs', {
+      const response = await fetch(`${API_BASE_URL}/api/logs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -123,6 +123,15 @@ export default function Kanban() {
     }
   }
 
+  const isOverdue = (dueDate: string) => {
+    if (!dueDate) return false
+    const today = new Date()
+    const due = new Date(dueDate)
+    today.setHours(0, 0, 0, 0)
+    due.setHours(0, 0, 0, 0)
+    return due < today
+  }
+
   if (loading) {
     return (
       <Layout>
@@ -214,7 +223,7 @@ export default function Kanban() {
                 {getTasksByStatus(column.id).map((task: any) => (
                   <div
                     key={task.id}
-                    className={`bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4 ${getPriorityColor(task.priority)} ${draggedTask?.id === task.id ? 'opacity-50' : ''}`}
+                    className={`border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4 ${getPriorityColor(task.priority)} ${draggedTask?.id === task.id ? 'opacity-50' : ''} ${isOverdue(task.dueDate) ? 'bg-pink-50 border-pink-200' : 'bg-white'}`}
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('text/plain', task.id)
@@ -224,10 +233,8 @@ export default function Kanban() {
                     onDragEnd={() => {
                       setDraggedTask(null)
                     }}
-                    onClick={(e) => {
-                      if (!e.defaultPrevented) {
-                        window.location.href = `/tasks/${task.id}`
-                      }
+                    onClick={() => {
+                      window.location.href = `/tasks/${task.id}`;
                     }}
                   >
                     <h4 className="font-medium text-gray-900 mb-2">{task.title}</h4>
@@ -261,29 +268,6 @@ export default function Kanban() {
                       )}
                     </div>
                     
-                    <div className="mt-2 grid grid-cols-2 gap-1">
-                      {columns.map((col) => (
-                        <button
-                          key={col.id}
-                          onClick={async (e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            if (task.status !== col.id) {
-                              await handleStatusChange(task.id, col.id)
-                            }
-                          }}
-                          className={`px-1 py-1 text-xs rounded text-center transition-colors ${
-                            task.status === col.id
-                              ? 'bg-primary-600 text-white'
-                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                        >
-                          {col.id === 'todo' ? '할일' : 
-                           col.id === 'in_progress' ? '진행중' :
-                           col.id === 'review' ? '검토' : '완료'}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 ))}
                 

@@ -189,6 +189,15 @@ export default function TaskDetail() {
     }
   }
 
+  const isOverdue = (dueDate: string) => {
+    if (!dueDate) return false
+    const today = new Date()
+    const due = new Date(dueDate)
+    today.setHours(0, 0, 0, 0)
+    due.setHours(0, 0, 0, 0)
+    return due < today
+  }
+
   if (loading) {
     return (
       <Layout>
@@ -265,7 +274,7 @@ export default function TaskDetail() {
           </div>
 
           {/* Task Content */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className={`rounded-lg shadow-sm p-6 ${isOverdue(task.dueDate) ? 'bg-pink-50 border border-pink-200' : 'bg-white'}`}>
             {editing ? (
               <div className="space-y-6">
                 <div>
@@ -399,7 +408,10 @@ export default function TaskDetail() {
                       {task.dueDate && (
                         <div className="flex justify-between">
                           <span className="text-gray-600">Due Date:</span>
-                          <span className="font-medium">{new Date(task.dueDate).toLocaleDateString('ko-KR')}</span>
+                          <span className={`font-medium ${isOverdue(task.dueDate) ? 'text-red-600' : ''}`}>
+                            {new Date(task.dueDate).toLocaleDateString('ko-KR')}
+                            {isOverdue(task.dueDate) && <span className="ml-1 text-xs">(Overdue)</span>}
+                          </span>
                         </div>
                       )}
                       <div className="flex justify-between">
