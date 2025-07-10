@@ -7,6 +7,8 @@ export default function TaskDetail() {
   const router = useRouter()
   const { id } = router.query
   const [task, setTask] = useState<any>(null)
+  const [comments, setComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [projects, setProjects] = useState([])
@@ -24,6 +26,7 @@ export default function TaskDetail() {
   useEffect(() => {
     if (id) {
       fetchTaskDetail()
+      fetchComments()
       fetchProjects()
       fetchWorkspaceMembers()
     }
@@ -31,6 +34,8 @@ export default function TaskDetail() {
 
   const fetchTaskDetail = async () => {
     try {
+      // It's better to have a dedicated endpoint to get a task by ID
+      // but for now we filter from all tasks.
       const response = await apiClient.getTasks()
       if (response.data) {
         const foundTask = response.data.tasks.find((t: any) => t.id === id)
@@ -56,6 +61,34 @@ export default function TaskDetail() {
       setLoading(false)
     }
   }
+
+  const fetchComments = async () => {
+    if (typeof id !== 'string') return;
+    try {
+      const response = await apiClient.getComments(id);
+      if (response.data) {
+        setComments(response.data.comments);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    }
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim() || typeof id !== 'string') return;
+
+    try {
+      const response = await apiClient.createComment(id, newComment);
+      if (response.data) {
+        setComments([...comments, response.data.comment]);
+        setNewComment('');
+      }
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      alert('Failed to add comment.');
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -84,8 +117,9 @@ export default function TaskDetail() {
   }
 
   const handleSave = async () => {
+    if (typeof id !== 'string') return;
     try {
-      const response = await apiClient.updateTask(task.id, editForm)
+      const response = await apiClient.updateTask(id, editForm)
       if (response.data) {
         setTask(response.data.task)
         setEditing(false)
@@ -96,9 +130,9 @@ export default function TaskDetail() {
   }
 
   const handleDelete = async () => {
-    if (confirm('정말로 이 태스크를 삭제하시겠습니까?')) {
+    if (confirm('정말로 이 태스크를 삭제하시겠습니까?') && typeof id === 'string') {
       try {
-        await apiClient.deleteTask(task.id)
+        await apiClient.deleteTask(id)
         router.push('/tasks')
       } catch (error) {
         console.error('Error deleting task:', error)
@@ -365,6 +399,49 @@ export default function TaskDetail() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Comments Section */}
+          <div className="mt-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Comments ({comments.length})</h3>
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.id} className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-semibold">
+                    {comment.author.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-sm text-gray-800">{comment.author.username}</span>
+                      <span className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleString('ko-KR')}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleCommentSubmit} className="mt-6 flex items-start space-x-3">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+              <div className="flex-1">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Add a comment..."
+                />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="submit"
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-medium disabled:bg-primary-300"
+                    disabled={!newComment.trim()}
+                  >
+                    Add Comment
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>

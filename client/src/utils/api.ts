@@ -155,6 +155,18 @@ class ApiClient {
     });
   }
 
+  // Comment endpoints
+  async getComments(taskId: string) {
+    return this.request<{ comments: any[] }>(`/api/tasks/${taskId}/comments`);
+  }
+
+  async createComment(taskId: string, content: string) {
+    return this.request<{ comment: any }>(`/api/tasks/${taskId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
   // Project endpoints
   async getProjects(workspaceId?: string) {
     const queryParams = new URLSearchParams();

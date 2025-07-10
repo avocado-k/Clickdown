@@ -37,8 +37,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(requestLogger);
 
 // Routes
+const tasksRouter = require('./routes/tasks');
+const commentsRouter = require('./routes/comments');
+
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/tasks', tasksRouter);
+tasksRouter.use('/:taskId/comments', commentsRouter);
 app.use('/api/workspaces', require('./routes/workspaces'));
 app.use('/api/logs', require('./routes/logs'));
 
