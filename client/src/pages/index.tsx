@@ -1,16 +1,24 @@
+// React Hook들을 import
 import { useEffect } from 'react'
+// Next.js의 라우터 Hook import
 import { useRouter } from 'next/router'
+// Next.js의 Link 컴포넌트 import (클라이언트 사이드 네비게이션용)
 import Link from 'next/link'
 
+// 홈 페이지 컴포넌트 (함수형 컴포넌트)
 export default function Home() {
+  // useRouter: Next.js에서 라우팅을 제어하는 Hook
   const router = useRouter()
 
+  // useEffect: 컴포넌트가 마운트될 때 실행되는 사이드 이펙트
   useEffect(() => {
+    // 로컬스토리지에서 토큰 확인
     const token = localStorage.getItem('token')
     if (token) {
+      // 토큰이 있으면 대시보드로 리디렉션
       router.push('/dashboard')
     }
-  }, [router])
+  }, [router]) // 의존성 배열에 router 포함
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100">
@@ -24,7 +32,9 @@ export default function Home() {
             Organize your tasks, collaborate with your team, and get things done.
           </p>
           
+          {/* 버튼 그룹 */}
           <div className="flex justify-center space-x-4 mb-16">
+            {/* Link 컴포넌트: 클라이언트 사이드 네비게이션 */}
             <Link
               href="/register"
               className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"

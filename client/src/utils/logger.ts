@@ -1,62 +1,72 @@
 // 클라이언트 로깅 시스템
+
+// 로그 항목의 타입 정의
 interface LogEntry {
   timestamp: string;
-  level: 'error' | 'warn' | 'info' | 'debug';
+  level: 'error' | 'warn' | 'info' | 'debug'; // 유니언 타입: 4개 값 중 하나만 가능
   message: string;
-  data?: any;
-  url?: string;
-  userId?: string;
-  sessionId?: string;
-  userAgent?: string;
+  data?: any;        // 옵셔널: 추가 데이터
+  url?: string;      // 옵셔널: 현재 URL
+  userId?: string;   // 옵셔널: 사용자 ID
+  sessionId?: string; // 옵셔널: 세션 ID
+  userAgent?: string; // 옵셔널: 브라우저 정보
 }
 
 class ClientLogger {
-  private logs: LogEntry[] = [];
-  private maxLogs = 1000; // 메모리 제한
+  private logs: LogEntry[] = []; // 로그 항목들을 저장하는 배열
+  private maxLogs = 1000; // 메모리 제한 (최대 1000개)
   private sessionId: string;
-  private userId: string | null = null;
+  private userId: string | null = null; // 초기값은 null
 
   constructor() {
     this.sessionId = this.generateSessionId();
-    this.setupErrorHandlers();
-    this.loadUserId();
+    this.setupErrorHandlers();  // 전역 에러 핸들러 설정
+    this.loadUserId();         // 로컬스토리지에서 사용자 ID 로드
   }
 
+  // 고유한 세션 ID 생성
   private generateSessionId(): string {
+    // Date.now().toString(36): 현재 시간을 36진법으로 변환
+    // Math.random().toString(36).substr(2): 랜덤한 문자열 생성
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
+  // 로컬스토리지에서 사용자 ID 로드
   private loadUserId(): void {
+    // 브라우저 환경에서만 실행 (SSR 대응)
     if (typeof window !== 'undefined') {
       try {
         const user = localStorage.getItem('user');
         if (user) {
+          // JSON.parse: JSON 문자열을 객체로 변환
           this.userId = JSON.parse(user).id;
         }
       } catch (error) {
-        // 사용자 정보 로드 실패 시 무시
+        // 사용자 정보 로드 실패 시 무시 (에러를 던지지 않음)
       }
     }
   }
 
+  // 전역 에러 핸들러 설정
   private setupErrorHandlers(): void {
     if (typeof window !== 'undefined') {
-      // 전역 에러 핸들러
+      // 전역 JavaScript 에러 핸들러
+      // addEventListener: 이벤트 리스너 추가
       window.addEventListener('error', (event) => {
         this.error('Global Error', {
-          message: event.message,
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
-          stack: event.error?.stack
+          message: event.message,    // 에러 메시지
+          filename: event.filename,  // 에러가 발생한 파일명
+          lineno: event.lineno,      // 에러가 발생한 줄 번호
+          colno: event.colno,        // 에러가 발생한 컬럼 번호
+          stack: event.error?.stack  // 옵셔널 체이닝으로 스택 트레이스 가져오기
         });
       });
 
-      // Promise rejection 핸들러
+      // Promise rejection 핸들러 (catch되지 않은 Promise 에러)
       window.addEventListener('unhandledrejection', (event) => {
         this.error('Unhandled Promise Rejection', {
-          reason: event.reason,
-          stack: event.reason?.stack
+          reason: event.reason,      // 거부 이유
+          stack: event.reason?.stack // 스택 트레이스 (있다면)
         });
       });
     }

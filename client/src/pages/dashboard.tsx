@@ -1,11 +1,21 @@
+// React Hook들 import
 import { useState, useEffect } from 'react'
+// Next.js Link 컴포넌트
+import Link from 'next/link'
+// 레이아웃 컴포넌트
 import Layout from '@/components/Layout'
+// API 클라이언트
 import { apiClient } from '@/utils/api'
 
+// 대시보드 페이지 컴포넌트
 export default function Dashboard() {
+  // 태스크 목록 상태
   const [tasks, setTasks] = useState([])
+  // 프로젝트 목록 상태
   const [projects, setProjects] = useState([])
+  // 로딩 상태
   const [loading, setLoading] = useState(true)
+  // 통계 데이터 상태
   const [stats, setStats] = useState({
     totalTasks: 0,
     completedTasks: 0,
@@ -13,32 +23,39 @@ export default function Dashboard() {
     totalProjects: 0
   })
 
+  // 컴포넌트 마운트 시 데이터 페칭
   useEffect(() => {
     fetchData()
-  }, [])
+  }, []) // 빈 의존성 배열 = 한 번만 실행
 
+  // 데이터 페칭 함수
   const fetchData = async () => {
     try {
+      // Promise.all: 여러 비동기 요청을 병렬로 실행
       const [tasksResponse, projectsResponse] = await Promise.all([
         apiClient.getTasks(),
         apiClient.getProjects()
       ])
 
+      // 태스크 데이터 처리
       if (tasksResponse.data) {
         setTasks(tasksResponse.data.tasks)
         
+        // 통계 계산
         const totalTasks = tasksResponse.data.tasks.length
         const completedTasks = tasksResponse.data.tasks.filter((task: any) => task.status === 'done').length
         const inProgressTasks = tasksResponse.data.tasks.filter((task: any) => task.status === 'in_progress').length
         
+        // 이전 상태와 병합하여 업데이트
         setStats(prev => ({
-          ...prev,
+          ...prev, // 기존 상태 복사
           totalTasks,
           completedTasks,
           inProgressTasks
         }))
       }
 
+      // 프로젝트 데이터 처리
       if (projectsResponse.data) {
         setProjects(projectsResponse.data.projects)
         setStats(prev => ({
@@ -49,10 +66,12 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
+      // 성공/실패 관계없이 로딩 상태 해제
       setLoading(false)
     }
   }
 
+  // 상태에 따른 색상 반환 함수
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'todo': return 'bg-gray-100 text-gray-800'
@@ -63,6 +82,7 @@ export default function Dashboard() {
     }
   }
 
+  // 우선순위에 따른 색상 반환 함수
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'low': return 'bg-green-100 text-green-800'
@@ -73,6 +93,7 @@ export default function Dashboard() {
     }
   }
 
+  // 로딩 중일 때 로딩 스피너 표시
   if (loading) {
     return (
       <Layout>
@@ -100,69 +121,77 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
+          <Link href="/tasks">
+            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total Tasks</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.totalTasks}</p>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Tasks</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalTasks}</p>
-              </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
+          <Link href="/tasks?status=done">
+            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Completed</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.completedTasks}</p>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Completed</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.completedTasks}</p>
-              </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+          <Link href="/tasks?status=in_progress">
+            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">In Progress</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.inProgressTasks}</p>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">In Progress</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.inProgressTasks}</p>
-              </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
+          <Link href="/projects">
+            <div className="bg-white p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Projects</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.totalProjects}</p>
                 </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Projects</p>
-                <p className="text-2xl font-semibold text-gray-900">{stats.totalProjects}</p>
-              </div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Recent Tasks */}
@@ -176,7 +205,11 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-4">
                 {tasks.slice(0, 5).map((task: any) => (
-                  <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div 
+                    key={task.id} 
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => window.location.href = `/tasks/${task.id}`}
+                  >
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{task.title}</h3>
                       <p className="text-sm text-gray-500">{task.project?.name}</p>
@@ -207,7 +240,11 @@ export default function Dashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {projects.map((project: any) => (
-                  <div key={project.id} className="p-4 border border-gray-200 rounded-lg">
+                  <div 
+                    key={project.id} 
+                    className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => window.location.href = `/projects/${project.id}`}
+                  >
                     <div className="flex items-center mb-2">
                       <div 
                         className="w-3 h-3 rounded-full mr-2" 

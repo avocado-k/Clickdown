@@ -1,26 +1,35 @@
+// React Hook들 import
 import { useState, useEffect } from 'react'
+// Next.js 라우터 Hook
 import { useRouter } from 'next/router'
+// Next.js Link 컴포넌트
 import Link from 'next/link'
 
+// Props 타입 정의
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode // React 요소들을 받는 타입
 }
 
+// 공통 레이아웃 컴포넌트
 export default function Layout({ children }: LayoutProps) {
+  // 사용자 정보 상태
   const [user, setUser] = useState<any>(null)
+  // 라우터 인스턴스
   const router = useRouter()
 
+  // 컴포넌트 마운트 시 사용자 정보 로드
   useEffect(() => {
     const userData = localStorage.getItem('user')
     if (userData) {
-      setUser(JSON.parse(userData))
+      setUser(JSON.parse(userData)) // JSON 문자열을 객체로 변환
     }
   }, [])
 
+  // 로그아웃 핸들러
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    router.push('/login')
+    localStorage.removeItem('token') // 토큰 삭제
+    localStorage.removeItem('user')  // 사용자 정보 삭제
+    router.push('/login')           // 로그인 페이지로 이동
   }
 
   return (
@@ -64,6 +73,7 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-medium">
+                      {/* 옵셔널 체이닝으로 안전하게 첫 글자 가져오기 */}
                       {user?.username?.[0]?.toUpperCase() || 'U'}
                     </span>
                   </div>
@@ -83,8 +93,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </nav>
 
+      {/* 메인 컨텐츠 영역 */}
       <main className="py-8">
-        {children}
+        {children} {/* 자식 컴포넌트들이 여기에 렌더링 됨 */}
       </main>
     </div>
   )

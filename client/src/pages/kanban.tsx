@@ -58,14 +58,27 @@ export default function Kanban() {
 
   const handleStatusChange = async (taskId: string, newStatus: string) => {
     try {
+      // 낙관적 업데이트를 위해 임시로 상태 변경
+      const previousTasks = [...tasks]
+      setTasks(tasks.map((task: any) => 
+        task.id === taskId ? { ...task, status: newStatus } : task
+      ))
+
       const response = await apiClient.updateTask(taskId, { status: newStatus })
-      if (response.data) {
+      if (response.error) {
+        // 에러 발생 시 이전 상태로 롤백
+        setTasks(previousTasks)
+        alert(`Failed to update task: ${response.error}`)
+      } else if (response.data) {
+        // 성공 시 서버 응답 데이터로 최종 업데이트
         setTasks(tasks.map((task: any) => 
-          task.id === taskId ? { ...task, status: newStatus } : task
+          task.id === taskId ? response.data.task : task
         ))
       }
     } catch (error) {
       console.error('Error updating task:', error)
+      // 에러 발생 시 데이터 다시 로드
+      await fetchData()
     }
   }
 
@@ -182,18 +195,20 @@ export default function Kanban() {
                 className="p-4 space-y-3 min-h-96"
                 onDragOver={(e) => {
                   e.preventDefault()
+                  e.dataTransfer.dropEffect = 'move'
                   e.currentTarget.classList.add('bg-gray-50')
                 }}
                 onDragLeave={(e) => {
                   e.currentTarget.classList.remove('bg-gray-50')
                 }}
-                onDrop={(e) => {
+                onDrop={async (e) => {
                   e.preventDefault()
                   e.currentTarget.classList.remove('bg-gray-50')
                   const taskId = e.dataTransfer.getData('text/plain')
-                  if (taskId && draggedTask) {
-                    handleStatusChange(taskId, column.id)
+                  if (taskId && draggedTask && draggedTask.status !== column.id) {
+                    await handleStatusChange(taskId, column.id)
                   }
+                  setDraggedTask(null)
                 }}
               >
                 {getTasksByStatus(column.id).map((task: any) => (
@@ -203,6 +218,7 @@ export default function Kanban() {
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('text/plain', task.id)
+                      e.dataTransfer.effectAllowed = 'move'
                       setDraggedTask(task)
                     }}
                     onDragEnd={() => {
@@ -249,8 +265,14 @@ export default function Kanban() {
                       {columns.map((col) => (
                         <button
                           key={col.id}
-                          onClick={() => handleStatusChange(task.id, col.id)}
-                          className={`px-1 py-1 text-xs rounded text-center ${
+                          onClick={async (e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            if (task.status !== col.id) {
+                              await handleStatusChange(task.id, col.id)
+                            }
+                          }}
+                          className={`px-1 py-1 text-xs rounded text-center transition-colors ${
                             task.status === col.id
                               ? 'bg-primary-600 text-white'
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -267,7 +289,10 @@ export default function Kanban() {
                 
                 {getTasksByStatus(column.id).length === 0 && (
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-500">
-                    Drop tasks here
+                    {draggedTask && draggedTask.status !== column.id 
+                      ? `Drop task here to move to ${column.title}`
+                      : 'No tasks in this column'
+                    }
                   </div>
                 )}
               </div>
